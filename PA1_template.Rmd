@@ -2,19 +2,51 @@
 
 
 ## Loading and preprocessing the data
-
-
+```{r}
+if (!file.exists('activity.csv')) unzip('activity.zip')
+activity = read.csv('activity.csv')
+```
 
 ## What is mean total number of steps taken per day?
 
-
+```{r}
+library(ggplot2)
+steps = aggregate(steps ~ date, data = activity, sum)
+qplot(steps, data=steps, geom='histogram',binwidth = 1000)
+mean(steps$steps)
+median(steps$steps)
+```
 
 ## What is the average daily activity pattern?
-
+```{r}
+daily_pattern = aggregate(steps ~ interval, data=activity, mean)
+qplot(interval, y=steps, data=daily_pattern,geom='line')
+print("Interval with maximun steps")
+daily_pattern$interval[which.max(daily_pattern$steps)]
+```
 
 
 ## Imputing missing values
-
-
+```{r}
+is_na = is.na(activity$steps)
+print(sum(is_na))
+activity_filled = activity
+for (i in 1:length(is_na)) {
+  if (is_na[i])
+    activity_filled$steps[i] = daily_pattern$steps[which(daily_pattern$interval==activity_filled$interval[i])]
+}
+steps_filled = aggregate(steps ~ date, data = activity_filled, sum)
+qplot(steps, data=steps_filled, geom='histogram',binwidth = 1000)
+mean(steps_filled$steps)
+median(steps_filled$steps)
+```
 
 ## Are there differences in activity patterns between weekdays and weekends?
+```{r}
+wday = suppressWarnings(weekdays(as.POSIXlt(activity_filled$date,"%Y-%m-%d")));
+activity_filled$day = 'weekday'
+activity_filled$day[wday=='Sunday'] = 'weekend'
+activity_filled$day[wday=='Saturday'] = 'weekend'
+daily_pattern_filled = aggregate(steps ~ interval + day, data=activity_filled, mean)
+qplot(interval, y=steps, data=daily_pattern_filled,geom='line',facets = day~.)
+```
